@@ -15,4 +15,7 @@ class RawFeed(models.Model):
     text = models.TextField()
     source = models.CharField(max_length=255)
     entity = models.ForeignKey(BusinessEntity, on_delete=models.CASCADE, related_name='raw_feeds')
+    product_name = models.CharField(max_length=255, null=True, blank=True)
+    customer_name = models.CharField(max_length=255, null=True, blank=True)
+    rating = models.IntegerField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
