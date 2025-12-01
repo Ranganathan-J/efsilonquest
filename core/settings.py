@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'users',
     'data_ingestion',
     'analysis',
+    'drf_yasg',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -177,3 +179,9 @@ SIMPLE_JWT = {
     # 'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     # 'TOKEN_TYPE_CLAIM': 'token_type',
 }
+
+
+# # ADDING DEFAULT URL FOR CODE SPACE
+# SWAGGER_SETTINGS = {
+#     'DEFAULT_API_URL': 'https://glowing-robot-v6v49gg4g4w92x5xw-8000.app.github.dev',
+# }
