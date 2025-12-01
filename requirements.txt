@@ -56,3 +56,95 @@ uritemplate==4.2.0
 urllib3==2.5.0
 vine==5.1.0
 wcwidth==0.2.14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Step 2 — Build Data Ingestion Module
+
+# This is the heart of the project.
+
+# Goal:
+
+# User uploads:
+
+# CSV
+
+# Excel
+
+# JSON
+
+# PDF
+
+# Then you store it & prepare for analysis.
+
+# ✔ Tasks:
+
+# Create a model:
+
+# class UploadedFile(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     file = models.FileField(upload_to='uploads/')
+#     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+# Create Upload API
+
+# Validate file type
+
+# Process files using Pandas
+
+# Return cleaned data summary
+
+# total rows
+
+# total columns
+
+# column types
+
+# missing values
+
+# 👉 This powers the analysis engine.
+
+# ⭐ Step 3 — Build Data Analysis Module
+
+# Once data is uploaded → user triggers analysis.
+
+# ✔ Tasks:
+
+# Accept file ID
+
+# Perform basic EDA:
+
+# summary stats
+
+# missing data
+
+# correlations
+
+# Generate insights using ML/A.I:
+
+# anomaly detection
+
+# trend detection
+
+# segmentation
+
+# Return as structured JSON and visual-ready data
