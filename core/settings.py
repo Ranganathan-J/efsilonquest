@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-
+from dotenv import load_dotenv
+load_dotenv()
+import os
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -76,12 +79,24 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+
+ENV = os.getenv("ENV", "local")
+if ENV == "railway":
+    DATABASES = {
+        'default': dj_database_url.parse(os.getenv("RAILWAY_DB_URL"))
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv("LOCAL_DB_NAME"),
+            'USER': os.getenv("LOCAL_DB_USER"),
+            'PASSWORD': os.getenv("LOCAL_DB_PASSWORD"),
+            'HOST': os.getenv("LOCAL_DB_HOST"),
+            'PORT': os.getenv("LOCAL_DB_PORT"),
+        }
+    }
+
 
 
 # Password validation
@@ -124,3 +139,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Adding Auth user model
+AUTH_USER_MODEL = 'users.User'
+
+
+
