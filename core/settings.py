@@ -188,16 +188,18 @@ SIMPLE_JWT = {
 }
 
 
-# # ADDING DEFAULT URL FOR CODE SPACE
-# SWAGGER_SETTINGS = {
-#     'DEFAULT_API_URL': 'https://glowing-robot-v6v49gg4g4w92x5xw-8000.app.github.dev',
-# }
+# ADDING DEFAULT URL FOR CODE SPACE
+SWAGGER_SETTINGS = {
+    'DEFAULT_API_URL': 'https://glowing-robot-v6v49gg4g4w92x5xw-8000.app.github.dev',
+}
 
 
 
 # adding Celery settings
-CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+CELERY_BROKER_URL = "redis://default:QHtWmZUFZYZzbaSiTFkOtlaFlHclwGKU@mainline.proxy.rlwy.net:37661"
+CELERY_RESULT_BACKEND = "redis://default:QHtWmZUFZYZzbaSiTFkOtlaFlHclwGKU@mainline.proxy.rlwy.net:37661"
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
