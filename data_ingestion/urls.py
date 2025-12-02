@@ -1,8 +1,20 @@
-from django.urls import path
-from .views import SubmitRawFeedView, EntityRawFeedView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    BusinessEntityViewSet,
+    RawFeedViewSet,
+    BulkFeedbackUploadView,
+    FeedbackStatsView,
+    FeedbackBatchViewSet,
+)
 
+router = DefaultRouter()
+router.register(r'entities', BusinessEntityViewSet, basename='entity')
+router.register(r'feedbacks', RawFeedViewSet, basename='feedback')
+router.register(r'batches', FeedbackBatchViewSet, basename='batch')
 
 urlpatterns = [
-    path('submit-raw-feed/', SubmitRawFeedView.as_view(), name='submit-raw-feed'),
-    path('entity-raw-feeds/<int:entity_id>/', EntityRawFeedView.as_view(), name='entity-raw-feeds'),
+    path('', include(router.urls)),
+    path('bulk-upload/', BulkFeedbackUploadView.as_view(), name='bulk-upload'),
+    path('statistics/', FeedbackStatsView.as_view(), name='statistics'),
 ]
