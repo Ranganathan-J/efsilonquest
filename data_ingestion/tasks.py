@@ -1,66 +1,172 @@
 from celery import shared_task
 from django.utils import timezone
 from django.db import transaction
+from datetime import timedelta
 import time
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3)
-def process_raw_feedback(self, feedback_id):
+# ==================== DAY 5: TEST TASKS ====================
+
+@shared_task
+def test_celery():
+    """Simple test task to verify Celery is working"""
+    logger.info("✅ Celery test task executed successfully!")
+    return "Celery is working!"
+
+
+@shared_task
+def print_random_feedback():
     """
-    Process a single raw feedback entry with AI analysis.
+    Periodic task that prints a random feedback every 10 seconds.
+    This is for Day 5 testing.
+    """
+    from data_ingestion.models import RawFeed
+    
+    try:
+        # Get random feedback
+        feedback = RawFeed.objects.order_by('?').first()
+        
+        if feedback:
+            preview = feedback.text[:100] + '...' if len(feedback.text) > 100 else feedback.text
+            logger.info(f"""
+            ==================== PERIODIC FEEDBACK ====================
+            ID: {feedback.id}
+            Entity: {feedback.entity.name}
+            Source: {feedback.source}
+            Text: {preview}
+            Status: {feedback.status}
+            ===========================================================
+            """)
+            return f"Printed feedback #{feedback.id}"
+        else:
+            logger.info("No feedbacks found in database")
+            return "No feedbacks available"
+            
+    except Exception as e:
+        logger.error(f"Error in print_random_feedback: {str(e)}")
+        return f"Error: {str(e)}"
+
+
+@shared_task
+def add_numbers(a, b):
+    """Simple math task for testing"""
+    result = a + b
+    logger.info(f"Addition: {a} + {b} = {result}")
+    return result
+
+
+@shared_task
+def long_running_task(duration=10):
+    """Task that takes some time to complete"""
+    logger.info(f"Starting long task ({duration} seconds)...")
+    time.sleep(duration)
+    logger.info("Long task completed!")
+    return f"Completed after {duration} seconds"
+
+
+# ==================== DAY 6-7: FEEDBACK PROCESSING ====================
+
+@shared_task(bind=True, max_retries=3)
+def process_feedback(self, feedback_id):
+    """
+    Main task to process a single feedback.
     
     This task:
     1. Updates status to 'processing'
-    2. Performs sentiment analysis
-    3. Extracts topics/keywords
-    4. Generates embeddings
-    5. Creates ProcessedFeedback record
-    6. Updates status to 'processed'
+    2. Performs AI analysis (placeholder for now)
+    3. Creates ProcessedFeedback record
+    4. Updates status to 'processed'
+    
+    Args:
+        feedback_id: ID of the RawFeed to process
     """
     from data_ingestion.models import RawFeed
     from analysis.models import ProcessedFeedback
-    # from analysis.ai_processor import AIProcessor  # You'll create this
     
     start_time = time.time()
     
     try:
-        # Get the raw feedback
+        # Get the raw feedback with lock
         raw_feed = RawFeed.objects.select_for_update().get(id=feedback_id)
         
-        # Update status
+        logger.info(f"📝 Processing feedback #{feedback_id}")
+        
+        # Update status to processing
         raw_feed.status = 'processing'
         raw_feed.save(update_fields=['status'])
         
-        logger.info(f"Processing feedback #{feedback_id}")
+        # ==================== PLACEHOLDER AI ANALYSIS ====================
+        # For now, we'll use simple placeholder logic
+        # In Week 2, we'll replace this with real AI models
         
-        # Initialize AI processor
-        processor = AIProcessor()
+        # Simulate processing time
+        time.sleep(2)
         
-        # Perform AI analysis
-        sentiment_result = processor.analyze_sentiment(raw_feed.text)
-        topics = processor.extract_topics(raw_feed.text)
-        embeddings = processor.generate_embeddings(raw_feed.text)
-        summary = processor.generate_summary(raw_feed.text)
-        key_phrases = processor.extract_key_phrases(raw_feed.text)
+        # Simple sentiment analysis (placeholder)
+        text_lower = raw_feed.text.lower()
         
-        # Calculate processing time
+        # Determine sentiment based on keywords
+        positive_words = ['great', 'excellent', 'amazing', 'love', 'perfect', 'good', 'best']
+        negative_words = ['bad', 'terrible', 'awful', 'hate', 'worst', 'poor', 'disappointed']
+        
+        positive_count = sum(1 for word in positive_words if word in text_lower)
+        negative_count = sum(1 for word in negative_words if word in text_lower)
+        
+        if positive_count > negative_count:
+            sentiment = 'positive'
+            sentiment_score = min(0.6 + (positive_count * 0.1), 0.95)
+        elif negative_count > positive_count:
+            sentiment = 'negative'
+            sentiment_score = min(0.6 + (negative_count * 0.1), 0.95)
+        else:
+            sentiment = 'neutral'
+            sentiment_score = 0.5
+        
+        # Extract simple topics (placeholder)
+        topics = []
+        if 'delivery' in text_lower:
+            topics.append('delivery')
+        if 'quality' in text_lower or 'product' in text_lower:
+            topics.append('product_quality')
+        if 'price' in text_lower or 'cost' in text_lower:
+            topics.append('pricing')
+        if 'service' in text_lower or 'support' in text_lower:
+            topics.append('customer_service')
+        
+        if not topics:
+            topics = ['general']
+        
+        # Simple embeddings (placeholder - just random numbers)
+        embeddings = [random.random() for _ in range(10)]
+        
+        # Generate simple summary
+        summary = raw_feed.text[:150] + '...' if len(raw_feed.text) > 150 else raw_feed.text
+        
+        # Key phrases (placeholder)
+        key_phrases = topics[:3]
+        
+        # ==================== END PLACEHOLDER ====================
+        
         processing_time = time.time() - start_time
         
-        # Create ProcessedFeedback record
+        # Create or update ProcessedFeedback record
         with transaction.atomic():
-            processed_feedback = ProcessedFeedback.objects.create(
+            processed, created = ProcessedFeedback.objects.update_or_create(
                 raw_feed=raw_feed,
-                sentiment=sentiment_result['label'],
-                sentiment_score=sentiment_result['score'],
-                topics=topics,
-                embeddings=embeddings,
-                summary=summary,
-                key_phrases=key_phrases,
-                processing_time=processing_time,
-                model_version="v1.0"
+                defaults={
+                    'sentiment': sentiment,
+                    'sentiment_score': sentiment_score,
+                    'topics': topics,
+                    'embeddings': embeddings,
+                    'summary': summary,
+                    'key_phrases': key_phrases,
+                    'processing_time': processing_time,
+                    'model_version': 'placeholder_v1.0'
+                }
             )
             
             # Update raw feed status
@@ -69,27 +175,25 @@ def process_raw_feedback(self, feedback_id):
             raw_feed.save(update_fields=['status', 'processed_at'])
         
         logger.info(
-            f"Successfully processed feedback #{feedback_id} "
-            f"in {processing_time:.2f}s"
+            f"✅ Processed feedback #{feedback_id} in {processing_time:.2f}s "
+            f"- Sentiment: {sentiment} ({sentiment_score:.2f})"
         )
-        
-        # Trigger insight generation if needed
-        if sentiment_result['label'] == 'negative' and sentiment_result['score'] > 0.8:
-            generate_insights.delay(processed_feedback.id)
         
         return {
             'status': 'success',
             'feedback_id': feedback_id,
-            'sentiment': sentiment_result['label'],
+            'sentiment': sentiment,
+            'sentiment_score': sentiment_score,
+            'topics': topics,
             'processing_time': processing_time
         }
         
     except RawFeed.DoesNotExist:
-        logger.error(f"RawFeed #{feedback_id} not found")
+        logger.error(f"❌ RawFeed #{feedback_id} not found")
         return {'status': 'error', 'message': 'Feedback not found'}
         
     except Exception as e:
-        logger.error(f"Error processing feedback #{feedback_id}: {str(e)}")
+        logger.error(f"❌ Error processing feedback #{feedback_id}: {str(e)}")
         
         # Update status to failed
         try:
@@ -100,151 +204,126 @@ def process_raw_feedback(self, feedback_id):
         except:
             pass
         
-        # Retry the task
-        raise self.retry(exc=e, countdown=60 * (self.request.retries + 1))
+        # Retry the task with exponential backoff
+        retry_delay = 60 * (2 ** self.request.retries)  # 60s, 120s, 240s
+        raise self.retry(exc=e, countdown=retry_delay)
 
 
 @shared_task
-def process_bulk_feedback(feedback_ids):
+def process_bulk_feedbacks(feedback_ids):
     """
-    Process multiple feedback entries in bulk.
+    Process multiple feedbacks in bulk.
     
     Args:
         feedback_ids: List of RawFeed IDs to process
     """
-    results = []
+    logger.info(f"📦 Processing bulk upload: {len(feedback_ids)} feedbacks")
+    
+    results = {
+        'total': len(feedback_ids),
+        'queued': 0,
+        'failed': 0,
+        'task_ids': []
+    }
     
     for feedback_id in feedback_ids:
-        result = process_raw_feedback.delay(feedback_id)
-        results.append({
-            'feedback_id': feedback_id,
-            'task_id': result.id
-        })
+        try:
+            task = process_feedback.delay(feedback_id)
+            results['task_ids'].append({
+                'feedback_id': feedback_id,
+                'task_id': task.id
+            })
+            results['queued'] += 1
+        except Exception as e:
+            logger.error(f"Failed to queue feedback #{feedback_id}: {str(e)}")
+            results['failed'] += 1
     
-    logger.info(f"Queued {len(feedback_ids)} feedbacks for processing")
+    logger.info(
+        f"✅ Bulk processing queued: {results['queued']} success, "
+        f"{results['failed']} failed"
+    )
+    
     return results
 
 
 @shared_task
-def generate_insights(processed_feedback_id):
+def process_pending_feedbacks():
     """
-    Generate insights from processed feedback.
-    
-    This task:
-    1. Analyzes processed feedback
-    2. Identifies patterns and trends
-    3. Creates Insight records
-    4. Triggers alerts if critical
+    Periodic task to process all pending (new) feedbacks.
+    Runs every minute via Celery Beat.
     """
-    from analysis.models import ProcessedFeedback, Insight, Alert
-    from analysis.insight_generator import InsightGenerator  # You'll create this
+    from data_ingestion.models import RawFeed
     
     try:
-        processed = ProcessedFeedback.objects.select_related(
-            'raw_feed', 'raw_feed__entity'
-        ).get(id=processed_feedback_id)
+        # Get all feedbacks with 'new' status
+        pending = RawFeed.objects.filter(status='new')
+        count = pending.count()
         
-        generator = InsightGenerator()
+        if count == 0:
+            logger.info("📭 No pending feedbacks to process")
+            return {'status': 'success', 'processed': 0}
         
-        # Generate insights
-        insights_data = generator.analyze(processed)
+        logger.info(f"📬 Found {count} pending feedbacks")
         
-        created_insights = []
-        for insight_data in insights_data:
-            insight = Insight.objects.create(
-                entity=processed.raw_feed.entity,
-                processed_feedback=processed,
-                insight_type=insight_data['type'],
-                priority=insight_data['priority'],
-                title=insight_data['title'],
-                text=insight_data['text'],
-                recommendation=insight_data.get('recommendation'),
-                confidence_score=insight_data['confidence_score'],
-                impact_score=insight_data.get('impact_score', 0.0)
-            )
-            created_insights.append(insight)
-            
-            # Create alert if critical
-            if insight.priority == 'critical':
-                Alert.objects.create(
-                    entity=processed.raw_feed.entity,
-                    insight=insight,
-                    message=f"Critical issue detected: {insight.title}"
-                )
-                
-                # Send notification
-                send_alert_notification.delay(insight.id)
+        # Queue each for processing
+        queued = 0
+        for feedback in pending[:100]:  # Process max 100 at a time
+            try:
+                process_feedback.delay(feedback.id)
+                queued += 1
+            except Exception as e:
+                logger.error(f"Failed to queue feedback #{feedback.id}: {str(e)}")
         
-        logger.info(
-            f"Generated {len(created_insights)} insights for "
-            f"feedback #{processed_feedback_id}"
-        )
+        logger.info(f"✅ Queued {queued} feedbacks for processing")
         
         return {
             'status': 'success',
-            'insights_count': len(created_insights)
+            'found': count,
+            'queued': queued
         }
         
     except Exception as e:
-        logger.error(
-            f"Error generating insights for #{processed_feedback_id}: {str(e)}"
-        )
+        logger.error(f"❌ Error in process_pending_feedbacks: {str(e)}")
         return {'status': 'error', 'message': str(e)}
 
 
 @shared_task
-def send_alert_notification(insight_id):
+def reprocess_failed_feedbacks():
     """
-    Send notification for critical alerts.
+    Retry processing all failed feedbacks.
+    Can be called manually or scheduled.
     """
-    from analysis.models import Insight, Alert
-    from django.core.mail import send_mail
-    from django.conf import settings
+    from data_ingestion.models import RawFeed
     
     try:
-        insight = Insight.objects.select_related(
-            'entity', 'alert'
-        ).get(id=insight_id)
+        failed = RawFeed.objects.filter(status='failed')
+        count = failed.count()
         
-        alert = insight.alert
+        if count == 0:
+            logger.info("No failed feedbacks to reprocess")
+            return {'status': 'success', 'reprocessed': 0}
         
-        # Send email
-        subject = f"Critical Alert: {insight.title}"
-        message = f"""
-        A critical issue has been detected:
+        logger.info(f"🔄 Reprocessing {count} failed feedbacks")
         
-        Entity: {insight.entity.name}
-        Priority: {insight.priority}
+        # Reset status and queue for processing
+        reprocessed = 0
+        for feedback in failed:
+            feedback.status = 'new'
+            feedback.error_message = None
+            feedback.save(update_fields=['status', 'error_message'])
+            
+            process_feedback.delay(feedback.id)
+            reprocessed += 1
         
-        {insight.text}
+        logger.info(f"✅ Queued {reprocessed} failed feedbacks for reprocessing")
         
-        Recommendation: {insight.recommendation or 'N/A'}
-        
-        Please review and take action.
-        """
-        
-        # You would configure recipient emails in settings
-        recipient_list = [settings.EMAIL_HOST_USER]  # Replace with actual recipients
-        
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            recipient_list,
-            fail_silently=False,
-        )
-        
-        # Update alert status
-        alert.is_sent = True
-        alert.sent_at = timezone.now()
-        alert.save(update_fields=['is_sent', 'sent_at'])
-        
-        logger.info(f"Sent alert notification for insight #{insight_id}")
-        
-        return {'status': 'success', 'insight_id': insight_id}
+        return {
+            'status': 'success',
+            'reprocessed': reprocessed
+        }
         
     except Exception as e:
-        logger.error(f"Error sending alert for insight #{insight_id}: {str(e)}")
+        logger.error(f"Error in reprocess_failed_feedbacks: {str(e)}")
         return {'status': 'error', 'message': str(e)}
 
 
@@ -252,21 +331,89 @@ def send_alert_notification(insight_id):
 def cleanup_old_feedbacks():
     """
     Periodic task to clean up old processed feedbacks.
-    Run this with Celery Beat.
+    Runs daily at 2 AM via Celery Beat.
     """
-    from datetime import timedelta
     from data_ingestion.models import RawFeed
     
-    cutoff_date = timezone.now() - timedelta(days=90)
+    try:
+        # Delete feedbacks older than 90 days
+        cutoff_date = timezone.now() - timedelta(days=90)
+        
+        old_feedbacks = RawFeed.objects.filter(
+            status='processed',
+            processed_at__lt=cutoff_date
+        )
+        
+        count = old_feedbacks.count()
+        
+        if count > 0:
+            old_feedbacks.delete()
+            logger.info(f"🗑️ Cleaned up {count} old feedbacks")
+        else:
+            logger.info("No old feedbacks to clean up")
+        
+        return {
+            'status': 'success',
+            'deleted_count': count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in cleanup_old_feedbacks: {str(e)}")
+        return {'status': 'error', 'message': str(e)}
+
+
+@shared_task
+def generate_daily_report():
+    """
+    Generate daily statistics report.
+    Can be scheduled to run daily.
+    """
+    from data_ingestion.models import RawFeed, BusinessEntity
+    from analysis.models import ProcessedFeedback
+    from django.db.models import Count, Avg
     
-    old_feedbacks = RawFeed.objects.filter(
-        status='processed',
-        processed_at__lt=cutoff_date
-    )
-    
-    count = old_feedbacks.count()
-    old_feedbacks.delete()
-    
-    logger.info(f"Cleaned up {count} old feedbacks")
-    
-    return {'status': 'success', 'deleted_count': count}
+    try:
+        today = timezone.now().date()
+        
+        # Get today's statistics
+        today_feedbacks = RawFeed.objects.filter(created_at__date=today)
+        
+        report = {
+            'date': today.isoformat(),
+            'total_feedbacks': today_feedbacks.count(),
+            'by_status': dict(
+                today_feedbacks.values('status').annotate(
+                    count=Count('id')
+                ).values_list('status', 'count')
+            ),
+            'by_source': dict(
+                today_feedbacks.values('source').annotate(
+                    count=Count('id')
+                ).values_list('source', 'count')
+            ),
+            'average_rating': today_feedbacks.aggregate(
+                avg=Avg('rating')
+            )['avg'] or 0,
+        }
+        
+        # Get sentiment breakdown
+        today_processed = ProcessedFeedback.objects.filter(
+            processed_at__date=today
+        )
+        
+        report['sentiment_breakdown'] = dict(
+            today_processed.values('sentiment').annotate(
+                count=Count('id')
+            ).values_list('sentiment', 'count')
+        )
+        
+        logger.info(f"📊 Daily Report Generated: {report}")
+        
+        return {
+            'status': 'success',
+            'report': report
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating daily report: {str(e)}")
+        return {'status': 'error', 'message': str(e)}

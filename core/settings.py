@@ -196,10 +196,123 @@ SWAGGER_SETTINGS = {
 
 
 # adding Celery settings
+# CELERY_BROKER_URL = "redis://default:QHtWmZUFZYZzbaSiTFkOtlaFlHclwGKU@mainline.proxy.rlwy.net:37661"
+# CELERY_RESULT_BACKEND = "redis://default:QHtWmZUFZYZzbaSiTFkOtlaFlHclwGKU@mainline.proxy.rlwy.net:37661"
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TASK_ALWAYS_EAGER = True
+# CELERY_TASK_EAGER_PROPAGATES = True
+
+
+
+
+# ==================== CELERY CONFIGURATION ====================
+# Add these settings to your core/settings.py file
+
+# Celery Broker and Backend
 CELERY_BROKER_URL = "redis://default:QHtWmZUFZYZzbaSiTFkOtlaFlHclwGKU@mainline.proxy.rlwy.net:37661"
 CELERY_RESULT_BACKEND = "redis://default:QHtWmZUFZYZzbaSiTFkOtlaFlHclwGKU@mainline.proxy.rlwy.net:37661"
+# Celery Task Serialization
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TIMEZONE = 'UTC'
+
+# Celery Task Settings
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+CELERY_TASK_MAX_RETRIES = 3
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # 1 minute
+
+# Celery Result Settings
+CELERY_RESULT_EXPIRES = 3600  # 1 hour
+CELERY_RESULT_PERSISTENT = True
+
+# Celery Worker Settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 4
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# Don't run tasks eagerly during development (set to False)
+# Set to True only for testing without Celery worker
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_EAGER_PROPAGATES = False
+
+# Celery Beat (Scheduler) Settings
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Celery Logging
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+
+# ==================== END CELERY CONFIGURATION ====================
+
+
+
+# File Upload Settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+
+# AI/ML Settings
+# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+# HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
+
+# # Email Settings (for alerts)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+# EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+# EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
+
+# # Logging Configuration
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'verbose': {
+#             'format': '{levelname} {asctime} {module} {message}',
+#             'style': '{',
+#         },
+#     },
+#     'handlers': {
+#         'console': {
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'verbose',
+#         },
+#         'file': {
+#             'class': 'logging.FileHandler',
+#             'filename': BASE_DIR / 'logs' / 'django.log',
+#             'formatter': 'verbose',
+#         },
+#     },
+#     'root': {
+#         'handlers': ['console', 'file'],
+#         'level': 'INFO',
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['console', 'file'],
+#             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+#             'propagate': False,
+#         },
+#         'celery': {
+#             'handlers': ['console', 'file'],
+#             'level': 'INFO',
+#             'propagate': False,
+#         },
+#     },
+# }
+
+# # Security Settings (Production)
+# if not DEBUG:
+#     SECURE_SSL_REDIRECT = True
+#     SESSION_COOKIE_SECURE = True
+#     CSRF_COOKIE_SECURE = True
+#     SECURE_BROWSER_XSS_FILTER = True
+#     SECURE_CONTENT_TYPE_NOSNIFF = True
+#     X_FRAME_OPTIONS = 'DENY'
+#     SECURE_HSTS_SECONDS = 31536000
+#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#     SECURE_HSTS_PRELOAD = True
