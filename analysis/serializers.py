@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ProcessedFeedback
-from data_ingestion.serializers import RawFeedSerializer
+from data_ingestion.serializer import RawFeedSerializer
 
 
 class ProcessedFeedbackSerializer(serializers.ModelSerializer):
