@@ -46,9 +46,11 @@ INSTALLED_APPS = [
     'users',
     'data_ingestion',
     'analysis',
-    'drf_yasg',
+    # 'drf_yasg', this one is depreciated
     'django_extensions',
-    'django_celery_beat'
+    'django_celery_beat',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',
 ]
 
 MIDDLEWARE = [
@@ -165,6 +167,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 
